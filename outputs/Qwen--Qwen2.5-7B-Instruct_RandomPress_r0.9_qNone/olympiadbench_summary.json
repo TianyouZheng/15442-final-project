@@ -1,0 +1,7 @@
+{
+    "config": "olympiadbench",
+    "error_acc": 1.6641452344931922,
+    "correct_acc": 3.2448377581120944,
+    "f1": 2.2,
+    "time_used": 3853.317549467087
+}
