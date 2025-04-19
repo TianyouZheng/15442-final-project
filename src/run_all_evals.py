@@ -89,7 +89,7 @@ def run(llm, output_dir, configs):
         with open(os.path.join(output_dir, f"{config}_correct.jsonl"), "w") as f:
             for e in correct_data:
                 f.write(json.dumps(e) + "\n")
-        with open(os.path.join(output_dir, f"{config}_summary.json"), "a") as f:
+        with open(os.path.join(output_dir, f"{config}_summary.json"), "w") as f:
             f.write(json.dumps(summary, indent=4) + "\n")
 
 
@@ -101,6 +101,7 @@ def make_llm(
     press=RandomPress(),
     temperature=0.0,
     quantization=4,
+    max_new_tokens=1024,
     attn_implementation="flash_attention_2",
 ):
     model_kwargs = {"attn_implementation": attn_implementation}
@@ -114,8 +115,7 @@ def make_llm(
     kwargs = {
         "press": press,
         "question": "",
-        "max_length": 1024,
-        "max_new_tokens": 1024,
+        "max_new_tokens": max_new_tokens,
         "temperature": temperature,
     }
 
@@ -143,7 +143,8 @@ def make_llm(
 
 
 """
-pip install kvpress optimum-quanto
+cd kvpress && pip install -e .
+pip install optimum-quanto
 pip install flash-attn --no-build-isolation
 """
 
@@ -164,11 +165,13 @@ quantizations = [
 
 models = [
     "Qwen/Qwen2.5-7B-Instruct",
+    # "Qwen/Qwen2.5-0.5B-Instruct",
     # "Qwen/Qwen2.5-Math-7B-Instruct",
     # "Llama-3.1-8B-Instruct",
 ]
 
 presses = [
+    # DuoAttentionPress,
     SnapKVPress,
     StreamingLLMPress,
     ExpectedAttentionPress,
@@ -180,23 +183,37 @@ presses = [
 ]
 
 compression_ratios = [
-    0.5,
-    0.25,
-    0.1,
+    # 0.1,
+    # 0.5,
+    # 0.25,
+    # 0.7,
+    0.8,
+    # 0.9,
+    0.95,
 ]
+
+# attn = "sdpa"
+# attn = "eager"
+# attn = "flex_attention"
+attn = "flash_attention_2"
+
+# max_new_tokens = 1024
+max_new_tokens = 128
 
 for model in models:
     for quantization in quantizations:
         for compression_ratio in compression_ratios:
             for press in presses:
-                press_obj = press(compression_ratio=compression_ratio)
+                press_obj = press()
                 press_name = press_obj.__class__.__name__
                 model_name = model.replace("/", "--")
                 run_id = f"{model_name}_{press_name}_r{compression_ratio}_q{quantization}"
                 print(f"Running {run_id}")
 
-                attn = "eager" if press_name == "ObservedAttentionPress" else "flash_attention_2"
-                if hasattr(press_obj, "compression_ratio"):
+                attn = "eager" if isinstance(press_obj, ObservedAttentionPress) else attn
+                if hasattr(press_obj, "head_compression_ratio"):
+                    press_obj.head_compression_ratio = compression_ratio
+                elif hasattr(press_obj, "compression_ratio"):
                     press_obj.compression_ratio = compression_ratio
 
                 llm, free = make_llm(
@@ -204,6 +221,7 @@ for model in models:
                     press=press_obj,
                     temperature=temperature,
                     quantization=quantization,
+                    max_new_tokens=max_new_tokens,
                     attn_implementation=attn,
                 )
                 run(llm, output_dir=f"./outputs/{run_id}/", configs=configs)
