@@ -1,0 +1,7 @@
+{
+    "config": "omnimath",
+    "error_acc": 0.13175230566534915,
+    "correct_acc": 0.0,
+    "f1": 0.0,
+    "time_used": 3889.02875995636
+}
