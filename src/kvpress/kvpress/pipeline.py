@@ -138,6 +138,7 @@ class KVPressTextGenerationPipeline(Pipeline):
         max_new_tokens: int = 50,
         press: Optional[BasePress] = None,
         cache: Optional[Cache] = None,
+        force_no_quantization_at_generation: bool = False,
     ):
         """
         Forward pass of the kv-press pipeline.
@@ -178,6 +179,7 @@ class KVPressTextGenerationPipeline(Pipeline):
         logger.debug(f"Compressed Context Length: {cache.get_seq_length()}")
 
         # Greedy decoding for each question
+        assert len(input_tensors["questions_ids"]) == 1  # Only support single question for now
         answers = []
         for question_ids in input_tensors["questions_ids"]:
             if isinstance(press, KeyRerotationPress) or (isinstance(press, FinchPress) and press.rerotate_keys):
@@ -188,6 +190,7 @@ class KVPressTextGenerationPipeline(Pipeline):
                 cache=cache,
                 context_length=context_length,
                 max_new_tokens=max_new_tokens,
+                force_no_quantization_at_generation=force_no_quantization_at_generation,
             )
             answers.append(answer)
 
@@ -208,7 +211,12 @@ class KVPressTextGenerationPipeline(Pipeline):
         return {"answers": model_outputs}
 
     def generate_answer(
-        self, question_ids: torch.Tensor, cache: Cache, context_length: int, max_new_tokens: int
+        self,
+        question_ids: torch.Tensor,
+        cache: Cache,
+        context_length: int,
+        max_new_tokens: int,
+        force_no_quantization_at_generation: bool,
     ) -> str:
         """
         Generate an answer to a question using greedy decoding.
@@ -223,6 +231,8 @@ class KVPressTextGenerationPipeline(Pipeline):
             The length of the context.
         max_new_tokens : int
             The maximum number of new tokens to generate.
+        force_no_quantization_at_generation : bool
+            Whether to force no quantization at generation time.
 
         Returns
         -------
@@ -243,6 +253,24 @@ class KVPressTextGenerationPipeline(Pipeline):
             num_logits_to_keep=1,
         )
 
+        if force_no_quantization_at_generation:
+            quantized_cache = cache
+            model_cache = DynamicCache()
+
+            for layer_idx in range(len(quantized_cache)):
+                q_key = quantized_cache._quantized_key_cache[layer_idx]
+                q_val = quantized_cache._quantized_value_cache[layer_idx]
+
+                dequant_key = quantized_cache._dequantize(q_key)
+                dequant_val = quantized_cache._dequantize(q_val)
+
+                model_cache.update(dequant_key, dequant_val, layer_idx)
+
+            model_cache._seen_tokens = quantized_cache._seen_tokens
+            del cache
+        else:
+            model_cache = cache
+
         position_ids = position_ids[:, -1:] + 1
         generated_ids = [outputs.logits[0, -1].argmax()]
 
@@ -253,7 +281,7 @@ class KVPressTextGenerationPipeline(Pipeline):
         for i in range(max_new_tokens - 1):
             outputs = self.model(
                 input_ids=generated_ids[-1].unsqueeze(0).unsqueeze(0),
-                past_key_values=cache,
+                past_key_values=model_cache,
                 position_ids=position_ids + i,
             )
             new_id = outputs.logits[0, -1].argmax()
@@ -263,23 +291,24 @@ class KVPressTextGenerationPipeline(Pipeline):
         answer = self.tokenizer.decode(torch.stack(generated_ids), skip_special_tokens=True)
 
         # Remove the generated tokens from the cache
-        cache.key_cache = [
-            cache.key_cache[layer_idx][:, :, :sequence_length]
-            for layer_idx, sequence_length in enumerate(cache_seq_lengths)
-        ]
-        cache.value_cache = [
-            cache.value_cache[layer_idx][:, :, :sequence_length]
-            for layer_idx, sequence_length in enumerate(cache_seq_lengths)
-        ]
-        if hasattr(cache, "_quantized_key_cache"):
-            cache._quantized_key_cache = [
-                cache._quantized_key_cache[layer_idx][:, :, :sequence_length]
-                for layer_idx, sequence_length in enumerate(cache_seq_lengths)
-            ]
-            cache._quantized_value_cache = [
-                cache._quantized_value_cache[layer_idx][:, :, :sequence_length]
-                for layer_idx, sequence_length in enumerate(cache_seq_lengths)
-            ]
+        # cache.key_cache = [
+        #     cache.key_cache[layer_idx][:, :, :sequence_length]
+        #     for layer_idx, sequence_length in enumerate(cache_seq_lengths)
+        # ]
+        # cache.value_cache = [
+        #     cache.value_cache[layer_idx][:, :, :sequence_length]
+        #     for layer_idx, sequence_length in enumerate(cache_seq_lengths)
+        # ]
+        # if hasattr(cache, "_quantized_key_cache"):
+        #     # print(f"Quantized key cache: {cache._quantized_key_cache[0]}")
+        #     cache._quantized_key_cache = [
+        #         cache._quantized_key_cache[layer_idx][:, :, :sequence_length]
+        #         for layer_idx, sequence_length in enumerate(cache_seq_lengths)
+        #     ]
+        #     cache._quantized_value_cache = [
+        #         cache._quantized_value_cache[layer_idx][:, :, :sequence_length]
+        #         for layer_idx, sequence_length in enumerate(cache_seq_lengths)
+        #     ]
 
         return answer
 

@@ -63,8 +63,10 @@ def attention_patch(name, func):
             scaling = kwargs.get("scaling")
             del kwargs["scaling"]
             kernel_options = {
-                "BLOCK_M": 64,
-                "BLOCK_N": 64,
+                "BLOCK_M": 32,
+                # "BLOCK_M": 64,
+                "BLOCK_N": 32,
+                # "BLOCK_N": 64,
                 "BLOCK_M1": 2,
                 "BLOCK_N1": 4,
                 "BLOCK_M2": 4,

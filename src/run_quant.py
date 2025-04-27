@@ -9,6 +9,7 @@ from kvpress import *
 from datasets import load_dataset
 from transformers import pipeline, QuantizedCacheConfig, QuantoQuantizedCache
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 TEMPLATE = """The following is a math problem and a solution (split into paragraphs, enclosed with tags and indexed from 0):
 
@@ -55,7 +56,8 @@ def run(llm, output_dir, configs):
 
         start_time = time.time()
         dataset = load_dataset("Qwen/ProcessBench", split=config)
-        prompts = [prepare_input_boxed(TEMPLATE, e) for e in dataset]
+        prompts = [prepare_input_boxed(TEMPLATE, e) for e in dataset][1:10]
+        # prompts = ["write a fib function in python"]
         generations = llm(prompts)
 
         res_data = []
@@ -109,18 +111,21 @@ def make_llm(
         "kv-press-text-generation",
         model=model,
         device_map="auto",
-        torch_dtype="auto",
+        torch_dtype=torch.float16 if quantization is not None else "auto",
         model_kwargs=model_kwargs,
     )
     kwargs = {
         "press": press,
-        "question": "",
+        # "question": "write a fib function in python",
+        "question": """Your task is to review and critique the solution paragraph by paragraph. Once you identify an error in a paragraph, return the index of the paragraph where the earliest error occurs. Otherwise, return the index of -1 (which typically denotes "not found"). Please only put your final answer (i.e., the index) in \\boxed{{}}.""",
         "max_new_tokens": max_new_tokens,
         "temperature": temperature,
+        "force_no_quantization_at_generation": True,
     }
 
     if quantization is not None:
-        kwargs["cache"] = QuantoQuantizedCache(QuantizedCacheConfig(nbits=quantization))
+        cache_config = QuantizedCacheConfig(nbits=quantization, device=device)
+        kwargs["cache"] = QuantoQuantizedCache(cache_config)
 
     def generate(prompts):
         results = []
@@ -129,6 +134,9 @@ def make_llm(
             result = pipe(prompt, **kwargs)["answer"]
             tqdm_obj.set_description_str(f"Length: {len(result)}")
             results.append(result)
+            print(result)
+            # with open("./quantization_outputs/quanto.txt", "a") as f:
+            #     f.write(result + "\n")
         return results
 
     def free():
@@ -143,8 +151,12 @@ def make_llm(
 
 
 """
+conda create -n kvpress python=3.12
+conda activate kvpress
+
 cd kvpress && pip install -e .
 pip install optimum-quanto
+conda install -c conda-forge libstdcxx-ng
 pip install flash-attn --no-build-isolation
 """
 
@@ -152,18 +164,19 @@ temperature = 0.0
 
 configs = [
     "gsm8k",
-    "math",
-    "olympiadbench",
-    "omnimath",
+    # "math",
+    # "olympiadbench",
+    # "omnimath",
 ]
 
 quantizations = [
-    None,
-    # 4,
-    # 2,
+    # None,
+    4,
+    2,
 ]
 
 models = [
+    "meta-llama/Llama-2-7b-chat-hf",
     "Qwen/Qwen2.5-7B-Instruct",
     # "Qwen/Qwen2.5-0.5B-Instruct",
     # "Qwen/Qwen2.5-Math-7B-Instruct",
@@ -171,34 +184,33 @@ models = [
 ]
 
 presses = [
-    # DuoAttentionPress,
-    SnapKVPress,
-    StreamingLLMPress,
-    ExpectedAttentionPress,
-    TOVAPress,
-    ObservedAttentionPress,
-    QFilterPress,
+    # SnapKVPress,
+    # StreamingLLMPress,
+    # ExpectedAttentionPress,
+    # TOVAPress,
+    # ObservedAttentionPress,
+    # QFilterPress,
     RandomPress,
-    KnormPress,
+    # KnormPress,
+    # PyramidKVPress,
 ]
 
 compression_ratios = [
+    0.0,
     # 0.1,
-    # 0.5,
     # 0.25,
+    # 0.5,
     # 0.7,
-    0.8,
+    # 0.8,
     # 0.9,
-    0.95,
+    # 0.95,
 ]
 
-# attn = "sdpa"
+attn = "sdpa"
 # attn = "eager"
 # attn = "flex_attention"
-attn = "flash_attention_2"
+# attn = "flash_attention_2"
 
-# max_new_tokens = 1024
-max_new_tokens = 128
 
 for model in models:
     for quantization in quantizations:
@@ -215,6 +227,8 @@ for model in models:
                     press_obj.head_compression_ratio = compression_ratio
                 elif hasattr(press_obj, "compression_ratio"):
                     press_obj.compression_ratio = compression_ratio
+
+                max_new_tokens = 128 if compression_ratio > -1 else 1024
 
                 llm, free = make_llm(
                     model=model,

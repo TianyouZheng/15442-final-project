@@ -1,0 +1,57 @@
+Llama 2, q4:
+
+Sure! Here is an example of how you could write a `fib` function in Python:
+```
+def fib(n):
+    if n <= 1:
+        return n
+    else:
+        return fib(n-1) + fib(n-2)
+```
+This function uses recursion to calculate the `n`th Fibonacci number. The base case is when `n` is 1 or less, in which case the function returns `n` directly. Otherwise, the function calls itself with `n-1` and `n-2` as arguments, and
+
+Qwen, q4:
+
+
+Python
+
+
+
+ Python
+ Python
+
+
+
+ def
+```
+ py pérdida di sua sua a a
+```
+
+ pérdida
+
+ pérdida
+ def
+ def
+ def def
+ def
+ def
+ def def
+fäh
+ nâ
+ def a def
+```
+ def
+
+
+ pérdida a tendência pérdida a pérdida
+
+ a py
+ def def pérdida
+ pérdida
+ pérdida
+ pérdida
+ pérdida
+ a pérdida pérdida
+ a pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida pérdida
+ pérdida
+ pérdida
