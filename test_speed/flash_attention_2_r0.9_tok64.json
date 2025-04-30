@@ -1,0 +1,10 @@
+{
+    "avg_time": 1.9160501956939697,
+    "raw_outputs": [
+        "Let's analyze the solution step by step.\n\nThe problem states that we need to find 400 integers such that the sum of any 200 integers is not divisible by 2003.\n\n[Analysis]\nThe solution suggests that we need to consider the sum of any 2002 integers",
+        " REVIEW OF THE SOLUTION\nThe solution provided is correct, and the reasoning is sound. The smallest number such that all its permutations are divisible by 63 is 1263. However, the problem is to find the smallest number such that all its permutations are divisible by 63. The smallest number that",
+        "The solution provided is correct and complete. The key insight is that the smallest number \\( n \\) such that any coloring of the edges of the complete graph \\( K_n \\) necessarily contains a monochromatic triangle is \\( n = 17 \\). This is a direct consequence of the combinatorial properties of",
+        "Let's review the solution paragraph by paragraph and identify the earliest paragraph where the reasoning appears to be flawed.\n\n1. The paragraph about the definition of a permutation is clear and does not contain any errors.\n2. The paragraph about what a permutation is and the properties of a permutation is also clear and does not contain any errors",
+        "The solution provided is correct, and there is no error in the reasoning. Let's go through the solution step by step to ensure clarity:\n\n1. **Initial Setup:**\n   - We need to find an integer \\( n \\) such that there exists an integer \\( m \\) such that \\( n \\leq"
+    ]
+}
