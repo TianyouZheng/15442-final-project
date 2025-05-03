@@ -116,21 +116,20 @@ def make_llm(
     )
     kwargs = {
         "press": press,
-        # "question": "write a fib function in python",
-        "question": """Your task is to review and critique the solution paragraph by paragraph. Once you identify an error in a paragraph, return the index of the paragraph where the earliest error occurs. Otherwise, return the index of -1 (which typically denotes "not found"). Please only put your final answer (i.e., the index) in \\boxed{{}}.""",
+        "question": "",
         "max_new_tokens": max_new_tokens,
         "temperature": temperature,
         "force_no_quantization_at_generation": True,
     }
 
-    if quantization is not None:
-        cache_config = QuantizedCacheConfig(nbits=quantization, device=device)
-        kwargs["cache"] = QuantoQuantizedCache(cache_config)
 
     def generate(prompts):
         results = []
         tqdm_obj = tqdm(prompts)
         for prompt in tqdm_obj:
+            if quantization is not None:
+                cache_config = QuantizedCacheConfig(nbits=quantization, device=device)
+                kwargs["cache"] = QuantoQuantizedCache(cache_config)
             result = pipe(prompt, **kwargs)["answer"]
             tqdm_obj.set_description_str(f"Length: {len(result)}")
             results.append(result)
@@ -176,8 +175,8 @@ quantizations = [
 ]
 
 models = [
-    "meta-llama/Llama-2-7b-chat-hf",
     "Qwen/Qwen2.5-7B-Instruct",
+    # "meta-llama/Llama-2-7b-chat-hf",
     # "Qwen/Qwen2.5-0.5B-Instruct",
     # "Qwen/Qwen2.5-Math-7B-Instruct",
     # "Llama-3.1-8B-Instruct",

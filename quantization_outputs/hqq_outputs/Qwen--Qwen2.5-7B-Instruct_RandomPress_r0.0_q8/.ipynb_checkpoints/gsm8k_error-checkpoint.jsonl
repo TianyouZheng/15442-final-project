@@ -1,0 +1,9 @@
+{"config": "gsm8k", "generated_critique": "\\boxed{-1}", "prediction": -1, "match": false, "label": 1}
+{"config": "gsm8k", "generated_critique": "\\boxed{-1}", "prediction": -1, "match": false, "label": 1}
+{"config": "gsm8k", "generated_critique": "\\boxed{-1}", "prediction": -1, "match": false, "label": 1}
+{"config": "gsm8k", "generated_critique": "\\boxed{2}", "prediction": 2, "match": true, "label": 2}
+{"config": "gsm8k", "generated_critique": "\\boxed{-1}", "prediction": -1, "match": false, "label": 2}
+{"config": "gsm8k", "generated_critique": "\\boxed{2}", "prediction": 2, "match": true, "label": 2}
+{"config": "gsm8k", "generated_critique": "\\boxed{-1}", "prediction": -1, "match": false, "label": 2}
+{"config": "gsm8k", "generated_critique": "\\boxed{-1}", "prediction": -1, "match": false, "label": 1}
+{"config": "gsm8k", "generated_critique": "\\boxed{2}", "prediction": 2, "match": true, "label": 2}
