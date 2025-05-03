@@ -1,7 +1,0 @@
-{
-    "config": "gsm8k",
-    "error_acc": 33.33333333333333,
-    "correct_acc": NaN,
-    "f1": NaN,
-    "time_used": 6.924620628356934
-}
